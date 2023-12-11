@@ -22,6 +22,7 @@ router.post('/send-notification', async (req, res) => {
     const insertSql = 'INSERT INTO notifications (title, message, image, linkto) VALUES (?, ?, ?, ?)';
     db.query(insertSql, [title, message, base64Image, linkto], (err, result) => {
       if (err) {
+        console.error('Error in send-notification endpoint:', err);
         res.status(500).send({ error: err.message });
       } else {
         res.status(200).send({ message: 'Notification sent successfully' });
