@@ -28,7 +28,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Middleware to enable cross-origin resource sharing (CORS)
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Methods', 'GET', 'POST', 'PATCH', 'DELETE');
   next();
 });
 
