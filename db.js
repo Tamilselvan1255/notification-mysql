@@ -17,11 +17,22 @@ db.getConnection((err, connection) => {
     console.error('MySQL connection error:', err);
   } else {
     console.log('Connected to MySQL database');
-    connection.release(); // Release the connection back to the pool
+
+    // Select the database
+    connection.query(`USE ${process.env.DB_NAME}`, (selectDbErr) => {
+      if (selectDbErr) {
+        console.error('Error selecting database:', selectDbErr);
+      } else {
+        console.log('Database selected:', process.env.DB_NAME);
+      }
+
+      connection.release(); // Release the connection back to the pool
+    });
   }
 });
 
 module.exports = db;
+
 
 // const mysql = require('mysql2');
 // require('dotenv').config();
