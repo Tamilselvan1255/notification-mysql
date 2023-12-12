@@ -1,7 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2');
 const notificationsRouter = require('./notification');
-
+const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -26,8 +26,8 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// ... (rest of the code remains unchanged)
-
+// Middleware to enable cross-origin resource sharing (CORS)
+app.use(cors()); // Add this line
 
 // Middleware to enable cross-origin resource sharing (CORS)
 app.use((req, res, next) => {
