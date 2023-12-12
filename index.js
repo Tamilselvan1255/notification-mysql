@@ -29,7 +29,6 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(express.static('public'));
 app.use(express.json());
-// Middleware to enable cross-origin resource sharing (CORS)
 app.use(cors(corsOption));
 
 
