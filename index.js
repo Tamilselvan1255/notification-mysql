@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const notificationsRouter = require('./notification');
 const cors = require('cors');
+const corsOption = require("./cors/cors");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -26,17 +27,11 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+app.use(express.static('public'));
+app.use(express.json());
 // Middleware to enable cross-origin resource sharing (CORS)
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-}));
+app.use(cors(corsOption));
 
-// Middleware to enable cross-origin resource sharing (CORS)
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Methods', 'GET', 'POST', 'PATCH', 'DELETE');
-  next();
-});
 
 // Sample database query in the notificationsRouter
 app.use('/v1/api', (req, res, next) => {
