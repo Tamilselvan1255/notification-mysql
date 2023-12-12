@@ -1,0 +1,10 @@
+{
+    "dev": {
+      "driver": "mysql",
+      "host": "nnsgluut5mye50or.cbetxkdyhwsb.us-east-1.rds.amazonaws.com",
+      "port": "3306",
+      "user": "dnlhv2712sevblxl",
+      "password": "pw3vopjcunzsfyr3",
+      "database": "bxd0zyd7tcfvza0d"
+    }
+  }
