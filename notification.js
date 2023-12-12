@@ -14,12 +14,12 @@ router.use(bodyParser.urlencoded({ extended: true }));
 
 router.post('/send-push-notification', async (req, res) => {
   try {
-    const { title, message, image, linkto } = req.body;
+    const { title, message, image, link } = req.body;
     // Send the base64-encoded image directly
     const base64Image = image;
     // Insert notification into local database
     const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
-    db.query(insertSql, [title, message, base64Image, linkto], async (err, result) => {
+    db.query(insertSql, [title, message, base64Image, link], async (err, result) => {
       if (err) {
         console.error('Error in send-notification endpoint:', err);
         return res.status(500).send({ error: err.message });
