@@ -12,11 +12,74 @@ router.use(express.json());
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
 
+// router.post('/send-push-notification', async (req, res) => {
+//   try {
+//     const { title, message, image, link } = req.body;
+//     // Send the base64-encoded image directly
+//     const base64Image = image;
+//     // Insert notification into local database
+//     const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
+//     db.query(insertSql, [title, message, base64Image, link], async (err, result) => {
+//       if (err) {
+//         console.error('Error in send-notification endpoint:', err);
+//         return res.status(500).send({ error: err.message });
+//       }
+//       // Notification inserted successfully, now call the external API
+//       try {
+//         const externalApiUrl = 'https://app.nativenotify.com/api/notification';
+//         const externalApiPayload = {
+//           appId: 16351,
+//           appToken: 'hYNQ78ihflsQqOQA5RhYBN',
+//           title: title,
+//           body: message,
+//           dateSent: new Date().toLocaleString(),
+//           pushData: { yourProperty: 'yourPropertyValue' },
+//           bigPictureURL: 'Big picture URL as a string',
+//         };
+//         const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
+//         // Handle the response from the first external API
+//         console.log('External API Response:', externalApiResponse.data);
+//         // Check if the response status is 200
+//         if (externalApiResponse.data) {
+//           // If successful, trigger the second external API call
+//           const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN`;
+//           const secondExternalApiResponse = await axios.get(secondExternalApiUrl);
+//           // Assuming the response is an array and you want to get the first element
+//           const firstNotificationId = secondExternalApiResponse.data[0]?.notification_id;
+//           // Insert the notification_id into your local database
+//           const updateSql = 'UPDATE notifications SET refer_notification_id = ? WHERE NotificationId = ?';
+//           db.query(updateSql, [firstNotificationId, result.insertId], (updateErr) => {
+//             if (updateErr) {
+//               console.error('Error updating refer_notification_id:', updateErr);
+//             }
+//           });
+//           res.status(200).send({ message: 'Notification sent successfully' });
+//         } else {
+//           res.status(500).send({ error: 'First external API call failed' });
+//         }
+//       } catch (externalApiError) {
+//         console.error('Error calling external API:', externalApiError);
+//         res.status(500).send({ error: 'Error calling external API' });
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Error in send-notification endpoint:', error);
+//     res.status(500).send({ error: 'Internal Server Error' });
+//   }
+// });
+
 router.post('/send-push-notification', async (req, res) => {
   try {
     const { title, message, image, link } = req.body;
+
+    // Validate URL link
+    if (!isValidUrl(link)) {
+      return res.status(400).send({ error: 'Invalid URL link' });
+    }
+
     // Send the base64-encoded image directly
     const base64Image = image;
+
     // Insert notification into local database
     const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
     db.query(insertSql, [title, message, base64Image, link], async (err, result) => {
@@ -24,6 +87,7 @@ router.post('/send-push-notification', async (req, res) => {
         console.error('Error in send-notification endpoint:', err);
         return res.status(500).send({ error: err.message });
       }
+
       // Notification inserted successfully, now call the external API
       try {
         const externalApiUrl = 'https://app.nativenotify.com/api/notification';
@@ -36,16 +100,21 @@ router.post('/send-push-notification', async (req, res) => {
           pushData: { yourProperty: 'yourPropertyValue' },
           bigPictureURL: 'Big picture URL as a string',
         };
+
         const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
+
         // Handle the response from the first external API
         console.log('External API Response:', externalApiResponse.data);
+
         // Check if the response status is 200
         if (externalApiResponse.data) {
           // If successful, trigger the second external API call
           const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN`;
           const secondExternalApiResponse = await axios.get(secondExternalApiUrl);
+
           // Assuming the response is an array and you want to get the first element
           const firstNotificationId = secondExternalApiResponse.data[0]?.notification_id;
+
           // Insert the notification_id into your local database
           const updateSql = 'UPDATE notifications SET refer_notification_id = ? WHERE NotificationId = ?';
           db.query(updateSql, [firstNotificationId, result.insertId], (updateErr) => {
@@ -53,6 +122,7 @@ router.post('/send-push-notification', async (req, res) => {
               console.error('Error updating refer_notification_id:', updateErr);
             }
           });
+
           res.status(200).send({ message: 'Notification sent successfully' });
         } else {
           res.status(500).send({ error: 'First external API call failed' });
@@ -67,6 +137,13 @@ router.post('/send-push-notification', async (req, res) => {
     res.status(500).send({ error: 'Internal Server Error' });
   }
 });
+
+function isValidUrl(url) {
+  // Implement your URL validation logic here
+  // For a basic check, you can use a regular expression
+  const urlRegex = /^(ftp|http|https):\/\/[^ "]+$/;
+  return urlRegex.test(url);
+}
 
 router.get('/get-push-notification', async (req, res) => {
   try {
