@@ -27,19 +27,19 @@ router.post('/send-notification', async (req, res) => {
       }
       // Notification inserted successfully, now call the external API
       try {
-        // const externalApiUrl = 'https://app.nativenotify.com/api/notification';
-        // const externalApiPayload = {
-        //   appId: 16351,
-        //   appToken: 'hYNQ78ihflsQqOQA5RhYBN',
-        //   title: title,
-        //   body: message,
-        //   dateSent: new Date().toLocaleString(), // You might want to format this according to your needs
-        //   pushData: { yourProperty: 'yourPropertyValue' },
-        //   bigPictureURL: 'Big picture URL as a string',
-        // };
-        // const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
-        // // Handle the response from the external API
-        // console.log('External API Response:', externalApiResponse.data);
+        const externalApiUrl = 'https://app.nativenotify.com/api/notification';
+        const externalApiPayload = {
+          appId: 16351,
+          appToken: 'hYNQ78ihflsQqOQA5RhYBN',
+          title: title,
+          body: message,
+          dateSent: new Date().toLocaleString(), // You might want to format this according to your needs
+          pushData: { yourProperty: 'yourPropertyValue' },
+          bigPictureURL: 'Big picture URL as a string',
+        };
+        const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
+        // Handle the response from the external API
+        console.log('External API Response:', externalApiResponse.data);
         res.status(200).send({ message: 'Notification sent successfully' });
       } catch (externalApiError) {
         console.error('Error calling external API:', externalApiError);
@@ -124,52 +124,52 @@ router.patch('/edit-notification/:NotificationId', (req, res) => {
 });
 
 // Delete notification endpoint
-router.delete('/delete-notification/:NotificationId', async (req, res) => {
-  try {
-    const { NotificationId } = req.params;
-    // Delete notification from local database
-    const deleteSql = 'DELETE FROM notifications WHERE NotificationId=?';
-    db.query(deleteSql, [NotificationId], async (err, result) => {
-      if (err) {
-        return res.status(500).send({ error: err.message });
-      }
-      if (result.affectedRows === 0) {
-        return res.status(404).send({ message: 'No matching notification found' });
-      }
-      // Notification deleted successfully from local database, now delete from external API
-      try {
-        const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16351/hYNQ78ihflsQqOQA5RhYBN/${NotificationId}`;
-        const externalApiResponse = await axios.delete(externalApiUrl);
-        // Handle the response from the external API
-        console.log('External API Response:', externalApiResponse.data);
-        res.status(200).send({ message: 'Notification deleted successfully' });
-      } catch (externalApiError) {
-        console.error('Error calling external API:', externalApiError);
-        res.status(500).send({ error: 'Error calling external API' });
-      }
-    });
-  } catch (error) {
-    console.error('Error in delete-notification endpoint:', error);
-    res.status(500).send({ error: 'Internal Server Error' });
-  }
-});
+// router.delete('/delete-notification/:NotificationId', async (req, res) => {
+//   try {
+//     const { NotificationId } = req.params;
+//     // Delete notification from local database
+//     const deleteSql = 'DELETE FROM notifications WHERE NotificationId=?';
+//     db.query(deleteSql, [NotificationId], async (err, result) => {
+//       if (err) {
+//         return res.status(500).send({ error: err.message });
+//       }
+//       if (result.affectedRows === 0) {
+//         return res.status(404).send({ message: 'No matching notification found' });
+//       }
+//       // Notification deleted successfully from local database, now delete from external API
+//       try {
+//         const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16351/hYNQ78ihflsQqOQA5RhYBN/${NotificationId}`;
+//         const externalApiResponse = await axios.delete(externalApiUrl);
+//         // Handle the response from the external API
+//         console.log('External API Response:', externalApiResponse.data);
+//         res.status(200).send({ message: 'Notification deleted successfully' });
+//       } catch (externalApiError) {
+//         console.error('Error calling external API:', externalApiError);
+//         res.status(500).send({ error: 'Error calling external API' });
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Error in delete-notification endpoint:', error);
+//     res.status(500).send({ error: 'Internal Server Error' });
+//   }
+// });
 
 // // Delete notification endpoint
-// router.delete('/delete-notification/:NotificationId', (req, res) => {
-//   const { NotificationId } = req.params;
+router.delete('/delete-notification/:NotificationId', (req, res) => {
+  const { NotificationId } = req.params;
 
-//   const deleteSql = 'DELETE FROM notifications WHERE NotificationId=?';
-//   db.query(deleteSql, [NotificationId], (err, result) => {
-//     if (err) {
-//       res.status(500).send({ error: err.message });
-//     } else {
-//       if (result.affectedRows === 0) {
-//         res.status(404).send({ message: 'No matching notification found' });
-//       } else {
-//         res.status(200).send({ message: 'Notification deleted successfully' });
-//       }
-//     }
-//   });
-// });
+  const deleteSql = 'DELETE FROM notifications WHERE NotificationId=?';
+  db.query(deleteSql, [NotificationId], (err, result) => {
+    if (err) {
+      res.status(500).send({ error: err.message });
+    } else {
+      if (result.affectedRows === 0) {
+        res.status(404).send({ message: 'No matching notification found' });
+      } else {
+        res.status(200).send({ message: 'Notification deleted successfully' });
+      }
+    }
+  });
+});
 
 module.exports = router;
