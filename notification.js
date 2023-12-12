@@ -13,6 +13,46 @@ router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
 
 // Send notification endpoint
+router.post('/send-notification', async (req, res) => {
+  try {
+    const { title, message, image, link } = req.body;
+    // Send the base64-encoded image directly
+    const base64Image = image;
+    // Insert notification into local database
+    const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
+    db.query(insertSql, [title, message, base64Image, link], async (err, result) => {
+      if (err) {
+        console.error('Error in send-notification endpoint:', err);
+        return res.status(500).send({ error: err.message });
+      }
+      // Notification inserted successfully, now call the external API
+      try {
+        const externalApiUrl = 'https://app.nativenotify.com/api/notification';
+        const externalApiPayload = {
+          appId: 16351,
+          appToken: 'hYNQ78ihflsQqOQA5RhYBN',
+          title: title,
+          body: message,
+          dateSent: new Date().toLocaleString(), // You might want to format this according to your needs
+          pushData: { yourProperty: 'yourPropertyValue' },
+          bigPictureURL: 'Big picture URL as a string',
+        };
+        const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
+        // Handle the response from the external API
+        console.log('External API Response:', externalApiResponse.data);
+        res.status(200).send({ message: 'Notification sent successfully' });
+      } catch (externalApiError) {
+        console.error('Error calling external API:', externalApiError);
+        res.status(500).send({ error: 'Error calling external API' });
+      }
+    });
+  } catch (error) {
+    console.error('Error in send-notification endpoint:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
+});
+
+
 router.post('/send-push-notification', async (req, res) => {
   try {
     const { title, message, image, linkto } = req.body;
@@ -68,6 +108,65 @@ router.post('/send-push-notification', async (req, res) => {
     res.status(500).send({ error: 'Internal Server Error' });
   }
 });
+
+router.get('/get-push-notification', async (req, res) => {
+  try {
+    const { page = 1, limit = 10, sortField = 'NotificationId', sortOrder = 'asc' } = req.query;
+    const offset = (page - 1) * limit;
+    const sortDirection = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    // Fetch internal notifications
+    const internalSelectSql = `
+      SELECT * FROM notifications
+      ORDER BY ${sortField} ${sortDirection}
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    const [internalResult, totalCount] = await Promise.all([
+      queryAsync(internalSelectSql),
+      queryAsync(`SELECT COUNT(*) as totalCount FROM notifications`),
+    ]);
+    // Fetch external notifications
+    const externalApiUrl = 'https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN';
+    const externalApiResponse = await axios.get(externalApiUrl);
+    const externalResult = externalApiResponse.data;
+    // Combine internal and external notifications based on matching IDs
+    const combinedResult = internalResult.map(internalNotification => {
+      const matchingExternalNotification = externalResult.find(
+        externalNotification => externalNotification.notification_id === internalNotification.refer_notification_id
+      );
+      return {
+        NotificationId: internalNotification.NotificationId,
+        title: internalNotification.title,
+        message: internalNotification.message,
+        image: internalNotification.image,
+        link: internalNotification.link,
+        refer_notification_id: internalNotification.refer_notification_id,
+        pushData: matchingExternalNotification ? JSON.parse(matchingExternalNotification.pushData) : null,
+        date: matchingExternalNotification ? matchingExternalNotification.date : null,
+      };
+    });
+    const paginationInfo = {
+      totalCount: totalCount[0].totalCount,
+      currentPage: +page,
+      totalPages: Math.ceil(totalCount[0].totalCount / limit),
+    };
+    res.status(200).json({ data: combinedResult, pagination: paginationInfo });
+  } catch (error) {
+    console.error('Error in get-push-notification endpoint:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
+});
+// Helper function to execute SQL queries with promises
+function queryAsync(sql) {
+  return new Promise((resolve, reject) => {
+    db.query(sql, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
 
 // Get notification endpoint
 router.get('/get-notification', (req, res) => {
