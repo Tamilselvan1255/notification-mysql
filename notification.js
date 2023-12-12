@@ -27,19 +27,19 @@ router.post('/send-notification', async (req, res) => {
       }
       // Notification inserted successfully, now call the external API
       try {
-        const externalApiUrl = 'https://app.nativenotify.com/api/notification';
-        const externalApiPayload = {
-          appId: 16351,
-          appToken: 'hYNQ78ihflsQqOQA5RhYBN',
-          title: title,
-          body: message,
-          dateSent: new Date().toLocaleString(), // You might want to format this according to your needs
-          pushData: { yourProperty: 'yourPropertyValue' },
-          bigPictureURL: 'Big picture URL as a string',
-        };
-        const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
-        // Handle the response from the external API
-        console.log('External API Response:', externalApiResponse.data);
+        // const externalApiUrl = 'https://app.nativenotify.com/api/notification';
+        // const externalApiPayload = {
+        //   appId: 16351,
+        //   appToken: 'hYNQ78ihflsQqOQA5RhYBN',
+        //   title: title,
+        //   body: message,
+        //   dateSent: new Date().toLocaleString(), // You might want to format this according to your needs
+        //   pushData: { yourProperty: 'yourPropertyValue' },
+        //   bigPictureURL: 'Big picture URL as a string',
+        // };
+        // const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
+        // // Handle the response from the external API
+        // console.log('External API Response:', externalApiResponse.data);
         res.status(200).send({ message: 'Notification sent successfully' });
       } catch (externalApiError) {
         console.error('Error calling external API:', externalApiError);
