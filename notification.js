@@ -29,8 +29,8 @@ router.post('/send-notification', async (req, res) => {
       try {
         const externalApiUrl = 'https://app.nativenotify.com/api/notification';
         const externalApiPayload = {
-          appId: 16660,
-          appToken: 'Oia6wxWf6ZTJKSJBLlbU5V',
+          appId: 16351,
+          appToken: 'hYNQ78ihflsQqOQA5RhYBN',
           title: title,
           body: message,
           dateSent: new Date().toLocaleString(), // You might want to format this according to your needs
@@ -138,7 +138,7 @@ router.delete('/delete-notification/:NotificationId', async (req, res) => {
       }
       // Notification deleted successfully from local database, now delete from external API
       try {
-        const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16660/Oia6wxWf6ZTJKSJBLlbU5V/${NotificationId}`;
+        const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16351/hYNQ78ihflsQqOQA5RhYBN/${NotificationId}`;
         const externalApiResponse = await axios.delete(externalApiUrl);
         // Handle the response from the external API
         console.log('External API Response:', externalApiResponse.data);
