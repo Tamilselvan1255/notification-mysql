@@ -12,47 +12,6 @@ router.use(express.json());
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
 
-// Send notification endpoint
-router.post('/send-notification', async (req, res) => {
-  try {
-    const { title, message, image, link } = req.body;
-    // Send the base64-encoded image directly
-    const base64Image = image;
-    // Insert notification into local database
-    const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
-    db.query(insertSql, [title, message, base64Image, link], async (err, result) => {
-      if (err) {
-        console.error('Error in send-notification endpoint:', err);
-        return res.status(500).send({ error: err.message });
-      }
-      // Notification inserted successfully, now call the external API
-      try {
-        const externalApiUrl = 'https://app.nativenotify.com/api/notification';
-        const externalApiPayload = {
-          appId: 16351,
-          appToken: 'hYNQ78ihflsQqOQA5RhYBN',
-          title: title,
-          body: message,
-          dateSent: new Date().toLocaleString(), // You might want to format this according to your needs
-          pushData: { yourProperty: 'yourPropertyValue' },
-          bigPictureURL: 'Big picture URL as a string',
-        };
-        const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
-        // Handle the response from the external API
-        console.log('External API Response:', externalApiResponse.data);
-        res.status(200).send({ message: 'Notification sent successfully' });
-      } catch (externalApiError) {
-        console.error('Error calling external API:', externalApiError);
-        res.status(500).send({ error: 'Error calling external API' });
-      }
-    });
-  } catch (error) {
-    console.error('Error in send-notification endpoint:', error);
-    res.status(500).send({ error: 'Internal Server Error' });
-  }
-});
-
-
 router.post('/send-push-notification', async (req, res) => {
   try {
     const { title, message, image, linkto } = req.body;
@@ -269,22 +228,40 @@ router.patch('/edit-notification/:NotificationId', (req, res) => {
 //   }
 // });
 
-// // Delete notification endpoint
-router.delete('/delete-notification/:NotificationId', (req, res) => {
-  const { NotificationId } = req.params;
+// Delete notification endpoint
+router.delete('/delete-push-notification/:refer_notification_id', async (req, res) => {
+  const { refer_notification_id } = req.params;
+  try {
+    // Delete the external notification
+    const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16351/hYNQ78ihflsQqOQA5RhYBN/${refer_notification_id}`;
+    await axios.delete(externalApiUrl);
 
-  const deleteSql = 'DELETE FROM notifications WHERE NotificationId=?';
-  db.query(deleteSql, [NotificationId], (err, result) => {
-    if (err) {
-      res.status(500).send({ error: err.message });
+    // Delete the internal notification
+    const deleteSql = 'DELETE FROM notifications WHERE refer_notification_id=?';
+    const result = await queryAsyncFunc(deleteSql, [refer_notification_id]);
+
+    if (result.affectedRows === 0) {
+      res.status(404).send({ message: 'No matching notification found' });
     } else {
-      if (result.affectedRows === 0) {
-        res.status(404).send({ message: 'No matching notification found' });
-      } else {
-        res.status(200).send({ message: 'Notification deleted successfully' });
-      }
+      res.status(200).send({ message: 'Notification deleted successfully' });
     }
-  });
+  } catch (error) {
+    console.error('Error in delete-notification endpoint:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
 });
+
+// Helper function to execute SQL queries with promises
+function queryAsyncFunc(sql, params) {
+  return new Promise((resolve, reject) => {
+    db.query(sql, params, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
 
 module.exports = router;
