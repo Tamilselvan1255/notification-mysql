@@ -2,148 +2,127 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('./db');
 const axios = require('axios');
-
+const AWS = require('aws-sdk');
 const router = express.Router();
+require('dotenv').config();
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
-// Middleware for handling JSON
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
+  endpoint: process.env.AWS_ENDPOINT, // Correct format for S3 endpoint
+});
+
 router.use(express.json());
-
-// Body parser middleware
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
 
-// router.post('/send-push-notification', async (req, res) => {
-//   try {
-//     const { title, message, image, link } = req.body;
-//     // Send the base64-encoded image directly
-//     const base64Image = image;
-//     // Insert notification into local database
-//     const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
-//     db.query(insertSql, [title, message, base64Image, link], async (err, result) => {
-//       if (err) {
-//         console.error('Error in send-notification endpoint:', err);
-//         return res.status(500).send({ error: err.message });
-//       }
-//       // Notification inserted successfully, now call the external API
-//       try {
-//         const externalApiUrl = 'https://app.nativenotify.com/api/notification';
-//         const externalApiPayload = {
-//           appId: 16351,
-//           appToken: 'hYNQ78ihflsQqOQA5RhYBN',
-//           title: title,
-//           body: message,
-//           dateSent: new Date().toLocaleString(),
-//           pushData: { yourProperty: 'yourPropertyValue' },
-//           bigPictureURL: 'Big picture URL as a string',
-//         };
-//         const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
-//         // Handle the response from the first external API
-//         console.log('External API Response:', externalApiResponse.data);
-//         // Check if the response status is 200
-//         if (externalApiResponse.data) {
-//           // If successful, trigger the second external API call
-//           const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN`;
-//           const secondExternalApiResponse = await axios.get(secondExternalApiUrl);
-//           // Assuming the response is an array and you want to get the first element
-//           const firstNotificationId = secondExternalApiResponse.data[0]?.notification_id;
-//           // Insert the notification_id into your local database
-//           const updateSql = 'UPDATE notifications SET refer_notification_id = ? WHERE NotificationId = ?';
-//           db.query(updateSql, [firstNotificationId, result.insertId], (updateErr) => {
-//             if (updateErr) {
-//               console.error('Error updating refer_notification_id:', updateErr);
-//             }
-//           });
-//           res.status(200).send({ message: 'Notification sent successfully' });
-//         } else {
-//           res.status(500).send({ error: 'First external API call failed' });
-//         }
-//       } catch (externalApiError) {
-//         console.error('Error calling external API:', externalApiError);
-//         res.status(500).send({ error: 'Error calling external API' });
-//       }
-//     });
-//   } catch (error) {
-//     console.error('Error in send-notification endpoint:', error);
-//     res.status(500).send({ error: 'Internal Server Error' });
-//   }
-// });
 
-router.post('/send-push-notification', async (req, res) => {
+function isValidUrl(url) {
+  const urlRegex = /^(ftp|http|https):\/\/[^ "]+$/;
+  return urlRegex.test(url);
+}
+
+router.post('/send-push-notification', upload.single('image'), async (req, res) => {
   try {
-    const { title, message, image, link } = req.body;
+    const { title, message, link } = req.body;
 
-    // Validate URL link
+    if (!title || !message || !link) {
+      return res.status(400).send({ error: 'Please enter all entities' });
+    }
+
     if (!isValidUrl(link)) {
       return res.status(400).send({ error: 'Invalid URL link' });
     }
 
-    // Send the base64-encoded image directly
-    const base64Image = image;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
 
-    // Insert notification into local database
-    const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
-    db.query(insertSql, [title, message, base64Image, link], async (err, result) => {
-      if (err) {
-        console.error('Error in send-notification endpoint:', err);
-        return res.status(500).send({ error: err.message });
-      }
+    const file = req.file;
+    const fileName = file.originalname;
+    const filePath = file.path;
 
-      // Notification inserted successfully, now call the external API
-      try {
-        const externalApiUrl = 'https://app.nativenotify.com/api/notification';
-        const externalApiPayload = {
-          appId: 16351,
-          appToken: 'hYNQ78ihflsQqOQA5RhYBN',
-          title: title,
-          body: message,
-          dateSent: new Date().toLocaleString(),
-          pushData: { yourProperty: 'yourPropertyValue' },
-          bigPictureURL: 'Big picture URL as a string',
-        };
+    const s3Params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: 'uploads/' + fileName,
+      Body: require('fs').createReadStream(filePath),
+      ACL: 'public-read',
+      ContentType: file.mimetype,
+    };
 
-        const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
+    try {
+      const s3Response = await s3.upload(s3Params).promise();
+      const imageUrl = s3Response.Location;
 
-        // Handle the response from the first external API
-        console.log('External API Response:', externalApiResponse.data);
+      console.log('Image uploaded to S3:', imageUrl);
 
-        // Check if the response status is 200
-        if (externalApiResponse.data) {
-          // If successful, trigger the second external API call
-          const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN`;
-          const secondExternalApiResponse = await axios.get(secondExternalApiUrl);
-
-          // Assuming the response is an array and you want to get the first element
-          const firstNotificationId = secondExternalApiResponse.data[0]?.notification_id;
-
-          // Insert the notification_id into your local database
-          const updateSql = 'UPDATE notifications SET refer_notification_id = ? WHERE NotificationId = ?';
-          db.query(updateSql, [firstNotificationId, result.insertId], (updateErr) => {
-            if (updateErr) {
-              console.error('Error updating refer_notification_id:', updateErr);
-            }
-          });
-
-          res.status(200).send({ message: 'Notification sent successfully' });
-        } else {
-          res.status(500).send({ error: 'First external API call failed' });
+      // Insert notification into local database
+      const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
+      db.query(insertSql, [title, message, imageUrl, link], async (err, result) => {
+        if (err) {
+          console.error('Error in send-push-notification endpoint:', err);
+          return res.status(500).send({ error: err.message });
         }
-      } catch (externalApiError) {
-        console.error('Error calling external API:', externalApiError);
-        res.status(500).send({ error: 'Error calling external API' });
-      }
-    });
+
+        // Notification inserted successfully, now call the external API
+        try {
+          const externalApiUrl = 'https://app.nativenotify.com/api/notification';
+          const externalApiPayload = {
+            appId: 16351,
+            appToken: 'hYNQ78ihflsQqOQA5RhYBN',
+            title: title,
+            body: message,
+            dateSent: new Date().toLocaleString(),
+            pushData: { yourProperty: 'yourPropertyValue' },
+            bigPictureURL: imageUrl,
+          };
+
+          const externalApiResponse = await axios.post(externalApiUrl, externalApiPayload);
+
+          // Handle the response from the external API
+          console.log('External API Response:', externalApiResponse.data);
+
+          // Check if the response status is 200
+          if (externalApiResponse.data) {
+            // If successful, trigger the second external API call
+            const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN`;
+            const secondExternalApiResponse = await axios.get(secondExternalApiUrl);
+
+            // Assuming the response is an array and you want to get the first element
+            const firstNotificationId = secondExternalApiResponse.data[0]?.notification_id;
+
+            // Insert the notification_id into your local database
+            const updateSql = 'UPDATE notifications SET refer_notification_id = ? WHERE NotificationId = ?';
+            db.query(updateSql, [firstNotificationId, result.insertId], (updateErr) => {
+              if (updateErr) {
+                console.error('Error updating refer_notification_id:', updateErr);
+              }
+            });
+
+            res.status(200).send({ message: 'Notification sent successfully' });
+          } else {
+            res.status(500).send({ error: 'First external API call failed' });
+          }
+        } catch (externalApiError) {
+          console.error('Error calling external API:', externalApiError);
+          res.status(500).send({ error: 'Error calling external API' });
+        }
+      });
+    } catch (s3Error) {
+      console.error('Error uploading image to S3:', s3Error);
+      res.status(500).send({ error: 'Error uploading image to S3' });
+    } finally {
+      require('fs').unlinkSync(filePath);
+    }
   } catch (error) {
-    console.error('Error in send-notification endpoint:', error);
+    console.error('Error in send-push-notification endpoint:', error);
     res.status(500).send({ error: 'Internal Server Error' });
   }
 });
 
-function isValidUrl(url) {
-  // Implement your URL validation logic here
-  // For a basic check, you can use a regular expression
-  const urlRegex = /^(ftp|http|https):\/\/[^ "]+$/;
-  return urlRegex.test(url);
-}
 
 router.get('/get-push-notification', async (req, res) => {
   try {
@@ -178,6 +157,7 @@ router.get('/get-push-notification', async (req, res) => {
         refer_notification_id: internalNotification.refer_notification_id,
         pushData: matchingExternalNotification ? JSON.parse(matchingExternalNotification.pushData) : null,
         date: matchingExternalNotification ? matchingExternalNotification.date : null,
+        emoji: internalNotification.emoji,
       };
     });
     const paginationInfo = {
@@ -185,7 +165,8 @@ router.get('/get-push-notification', async (req, res) => {
       currentPage: +page,
       totalPages: Math.ceil(totalCount[0].totalCount / limit),
     };
-    res.status(200).json({ data: combinedResult, pagination: paginationInfo });
+
+    res.status(200).send({ data: combinedResult, pagination: paginationInfo });
   } catch (error) {
     console.error('Error in get-push-notification endpoint:', error);
     res.status(500).send({ error: 'Internal Server Error' });
