@@ -70,18 +70,13 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
         const currentDate = new Date();
         const options = { timeZone: 'Asia/Kolkata' };
         const formattedDate = currentDate.toLocaleString('en-US', options);
-        
-        console.log(formattedDate);
-        
-
-console.log(formattedDate);
 
         // Notification inserted successfully, now call the external API
         try {
           const externalApiUrl = 'https://app.nativenotify.com/api/notification';
           const externalApiPayload = {
-            appId: 16351,
-            appToken: 'hYNQ78ihflsQqOQA5RhYBN',
+            appId: 16785,
+            appToken: 'M4BkpOjRzzcSpbRoGzxT8i',
             title: title,
             body: message,
             dateSent: formattedDate,
