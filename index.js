@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const notificationsRouter = require('./notification');
 const cors = require('cors');
 const corsOption = require("./cors/cors");
+const db = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -38,6 +39,32 @@ app.use('/v1/api', (req, res, next) => {
   req.db = pool;
   next();
 }, notificationsRouter);
+
+
+
+// save 
+app.post('/save-token', (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    const insertSql = 'INSERT INTO users (token) VALUES (?)';
+
+    db.query(insertSql, [token], (err, result) => {
+      if (err) {
+        console.error('Error saving token:', err);
+        return res.status(500).send({ error: 'Internal Server Error' });
+      }
+
+      console.log('Token saved successfully:', result);
+
+      res.status(200).send({ message: 'Token saved successfully' });
+    });
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
+});
+
 
 // Health check endpoint
 app.get('/health', (req, res) => {
