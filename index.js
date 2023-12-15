@@ -67,7 +67,7 @@ app.get('/getnotification', async (req, res) => {
 
     // Fetch internal notifications
     const internalSelectSql = `
-      SELECT * FROM notifications
+      SELECT * FROM notifications ORDER BY NotificationId DESC
     `;
     const [internalResult] = await Promise.all([
       queryAsync(internalSelectSql),
