@@ -68,7 +68,11 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
         }
 
         const currentDate = new Date();
-const formattedDate = currentDate.toLocaleString();
+        const options = { timeZone: 'Asia/Kolkata' };
+        const formattedDate = currentDate.toLocaleString('en-US', options);
+        
+        console.log(formattedDate);
+        
 
 console.log(formattedDate);
 
