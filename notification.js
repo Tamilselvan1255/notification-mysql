@@ -29,9 +29,9 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
   try {
     const { title, message, link } = req.body;
 
-    if (!title || !message || !link) {
-      return res.status(400).send({ error: 'Please enter all entities' });
-    }
+    // if (!title || !message || !link) {
+    //   return res.status(400).send({ error: 'Please enter all entities' });
+    // }
 
     if (!isValidUrl(link)) {
       return res.status(400).send({ error: 'Invalid URL link' });
@@ -67,6 +67,11 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
           return res.status(500).send({ error: err.message });
         }
 
+        const currentDate = new Date();
+const formattedDate = currentDate.toLocaleString();
+
+console.log(formattedDate);
+
         // Notification inserted successfully, now call the external API
         try {
           const externalApiUrl = 'https://app.nativenotify.com/api/notification';
@@ -75,7 +80,7 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
             appToken: 'hYNQ78ihflsQqOQA5RhYBN',
             title: title,
             body: message,
-            dateSent: new Date().toLocaleString(),
+            dateSent: formattedDate,
             pushData: { yourProperty: 'yourPropertyValue' },
             bigPictureURL: imageUrl,
           };
