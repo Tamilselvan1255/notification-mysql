@@ -276,7 +276,9 @@ router.post('/send-push-notification-users', upload.single('image'), async (req,
         }
 
         // Retrieve Expo push tokens from the user table
-        const userTokensSql = 'SELECT token FROM users';
+     
+        const userTokensSql = 'SELECT DISTINCT token FROM users';
+
         db.query(userTokensSql, async (tokenErr, tokenResults) => {
           if (tokenErr) {
             console.error('Error retrieving user tokens:', tokenErr);
