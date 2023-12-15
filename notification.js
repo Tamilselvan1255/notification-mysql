@@ -38,7 +38,7 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
     }
 
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return res.status(400).send({ error: 'No file uploaded' });
     }
 
     const file = req.file;
