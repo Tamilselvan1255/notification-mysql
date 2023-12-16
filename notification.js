@@ -92,7 +92,7 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
           // Check if the response status is 200
           if (externalApiResponse.data) {
             // If successful, trigger the second external API call
-            const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN`;
+            const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16785/M4BkpOjRzzcSpbRoGzxT8i`;
             const secondExternalApiResponse = await axios.get(secondExternalApiUrl);
 
             // Assuming the response is an array and you want to get the first element
@@ -144,7 +144,7 @@ router.get('/get-push-notification', async (req, res) => {
       queryAsync(`SELECT COUNT(*) as totalCount FROM notifications`),
     ]);
     // Fetch external notifications
-    const externalApiUrl = 'https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN';
+    const externalApiUrl = 'https://app.nativenotify.com/api/notification/inbox/16785/M4BkpOjRzzcSpbRoGzxT8i';
     const externalApiResponse = await axios.get(externalApiUrl);
     const externalResult = externalApiResponse.data;
     // Combine internal and external notifications based on matching IDs
@@ -213,7 +213,7 @@ router.delete('/delete-push-notification/:refer_notification_id', async (req, re
   const { refer_notification_id } = req.params;
   try {
     // Delete the external notification
-    const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16351/hYNQ78ihflsQqOQA5RhYBN/${refer_notification_id}`;
+    const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16785/M4BkpOjRzzcSpbRoGzxT8i/${refer_notification_id}`;
     await axios.delete(externalApiUrl);
 
     // Delete the internal notification

@@ -1,6 +1,8 @@
 const express = require('express');
 const mysql = require('mysql2');
 const notificationsRouter = require('./notification');
+const contactUsRouter = require('./contactUs'); 
+const shareLinkRouter = require('./shareLink'); 
 const cors = require('cors');
 const corsOption = require("./cors/cors");
 const app = express();
@@ -31,13 +33,15 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(cors(corsOption));
 
-
 // Sample database query in the notificationsRouter
 app.use('/v1/api', (req, res, next) => {
   // Inject the database pool into the request object
   req.db = pool;
   next();
 }, notificationsRouter);
+
+app.use('/v1/api', contactUsRouter);
+app.use('/v1/api', shareLinkRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
