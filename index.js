@@ -5,6 +5,7 @@ const contactUsRouter = require('./contactUs');
 const shareLinkRouter = require('./shareLink'); 
 const cors = require('cors');
 const corsOption = require("./cors/cors");
+const db = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -40,8 +41,64 @@ app.use('/v1/api', (req, res, next) => {
   next();
 }, notificationsRouter);
 
+<<<<<<< HEAD
 app.use('/v1/api', contactUsRouter);
 app.use('/v1/api', shareLinkRouter);
+=======
+
+
+// save 
+app.post('/save-token', (req, res) => {
+  try {
+    const { token } = req.body;
+    const insertSql = 'INSERT INTO users (token) VALUES (?)';
+    db.query(insertSql, [token], (err, result) => {
+      if (err) {
+        console.error('Error saving token:', err);
+        return res.status(500).send({ error: 'Internal Server Error' });
+      }
+      res.status(200).send({ message: 'Token saved successfully' });
+    });
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
+});
+
+
+
+app.get('/getnotification', async (req, res) => {
+  try {
+
+    // Fetch internal notifications
+    const internalSelectSql = `
+      SELECT * FROM notifications ORDER BY NotificationId DESC
+    `;
+    const [internalResult] = await Promise.all([
+      queryAsync(internalSelectSql),
+      queryAsync(`SELECT COUNT(*) as totalCount FROM notifications`),
+    ]);
+
+    res.status(200).send({ data: internalResult });
+  } catch (error) {
+    console.error('Error in get-push-notification endpoint:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
+});
+
+function queryAsync(sql) {
+  return new Promise((resolve, reject) => {
+    db.query(sql, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
+
+>>>>>>> 684fe0220f2df49014cf104153a1340717568630
 
 // Health check endpoint
 app.get('/health', (req, res) => {
