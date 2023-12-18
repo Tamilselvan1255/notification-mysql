@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2');
 const notificationsRouter = require('./notification');
+const contactRouter = require('./contactUs');
 const cors = require('cors');
 const corsOption = require("./cors/cors");
 const db = require('./db');
@@ -39,6 +40,13 @@ app.use('/v1/api', (req, res, next) => {
   req.db = pool;
   next();
 }, notificationsRouter);
+
+app.use('/v1/api', (req, res, next) => {
+  // Inject the database pool into the request object
+  req.db = pool;
+  next();
+}, contactRouter);
+
 
 
 
