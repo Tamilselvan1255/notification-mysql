@@ -7,6 +7,17 @@ const router = express.Router();
 require('dotenv').config();
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
+const { initializeApp } = require("firebase-admin/app");
+const { getMessaging } = require("firebase-admin/messaging");
+const admin = require("firebase-admin"); // Add this line
+
+
+const serviceAccount = require("./serviceAccountKey.json");
+
+initializeApp({
+  credential: admin.credential.cert(serviceAccount), // Use 'admin' here
+  projectId: "push-notification-3f697",
+});
 
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -276,7 +287,7 @@ router.post('/send-push-notification-users', upload.single('image'), async (req,
         }
 
         // Retrieve Expo push tokens from the user table
-     
+
         const userTokensSql = 'SELECT DISTINCT token FROM users';
 
         db.query(userTokensSql, async (tokenErr, tokenResults) => {
@@ -338,6 +349,108 @@ router.post('/send-push-notification-users', upload.single('image'), async (req,
 });
 
 
+
+router.post('/send-push-notification-users-test', upload.single('image'), async (req, res) => {
+  try {
+    const { title, message, link } = req.body;
+
+    if (!title || !message || !link) {
+      return res.status(400).send({ error: 'Please enter all entities' });
+    }
+
+    if (!isValidUrl(link)) {
+      return res.status(400).send({ error: 'Invalid URL link' });
+    }
+
+    if (!req.file) {
+      return res.status(400).send({ error: 'No file uploaded' });
+    }
+
+    const file = req.file;
+    const fileName = file.originalname;
+    const filePath = file.path;
+
+    const s3Params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: 'uploads/' + fileName,
+      Body: require('fs').createReadStream(filePath),
+      ACL: 'public-read',
+      ContentType: file.mimetype,
+    };
+
+    try {
+      const s3Response = await s3.upload(s3Params).promise();
+      const imageUrl = s3Response.Location;
+
+      console.log('Image uploaded to S3:', imageUrl);
+
+      // Insert notification into local database
+      const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
+      db.query(insertSql, [title, message, imageUrl, link], async (err, result) => {
+        if (err) {
+          console.error('Error in send-push-notification endpoint:', err);
+          return res.status(500).send({ error: err.message });
+        }
+
+        // Retrieve Expo push tokens from the user table
+
+        const userTokensSql = 'SELECT DISTINCT token FROM users';
+
+        db.query(userTokensSql, async (tokenErr, tokenResults) => {
+          if (tokenErr) {
+            console.error('Error retrieving user tokens:', tokenErr);
+            return res.status(500).send({ error: tokenErr.message });
+          }
+
+          const expoTokens = tokenResults.map((row) => row.token);
+
+          getMessaging().subscribeToTopic(expoTokens, "all")
+            .then((response) => {
+              const message1 = {
+                android: {
+                  notification: {
+                    imageUrl:
+                      imageUrl,
+                  },
+                },
+                notification: {
+                  title: title,
+                  body: message,
+                },
+                topic: "all"
+              };
+            
+              getMessaging()
+                .send(message1)
+                .then((response) => {
+                  res.status(200).json({
+                    message: "Successfully sent message",
+                    response
+                  });
+                  console.log("Successfully sent message:", response);
+                })
+                .catch((error) => {
+                  res.status(400);
+                  res.send(error);
+                  console.log("Error sending message:", error);
+                });
+            })
+            .catch((error) => {
+              console.log('Error subscribing to topic:', error);
+            });
+        });
+      });
+    } catch (s3Error) {
+      console.error('Error uploading image to S3:', s3Error);
+      res.status(500).send({ error: 'Error uploading image to S3' });
+    } finally {
+      require('fs').unlinkSync(filePath);
+    }
+  } catch (error) {
+    console.error('Error in send-push-notification endpoint:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
+});
 
 
 
