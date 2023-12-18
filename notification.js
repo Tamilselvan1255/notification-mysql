@@ -220,16 +220,18 @@ router.patch('/edit-notification/:NotificationId', (req, res) => {
 });
 
 // Delete notification endpoint
-router.delete('/delete-push-notification/:refer_notification_id', async (req, res) => {
-  const { refer_notification_id } = req.params;
+router.delete('/delete-push-notification/:id', async (req, res) => {
+  const { id } = req.params;
+
+
   try {
     // Delete the external notification
     // const externalApiUrl = `https://app.nativenotify.com/api/notification/inbox/notification/16351/hYNQ78ihflsQqOQA5RhYBN/${refer_notification_id}`;
     // await axios.delete(externalApiUrl);
 
     // Delete the internal notification
-    const deleteSql = 'DELETE FROM notifications WHERE refer_notification_id=?';
-    const result = await queryAsyncFunc(deleteSql, [refer_notification_id]);
+    const deleteSql = 'DELETE FROM notifications WHERE NotificationId=?';
+    const result = await queryAsyncFunc(deleteSql, [id]);
 
     if (result.affectedRows === 0) {
       res.status(404).send({ message: 'No matching notification found' });
