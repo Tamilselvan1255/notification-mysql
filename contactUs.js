@@ -23,22 +23,38 @@ const contactSchema = Joi.object({
 router.post('/settings/add-contact', (req, res) => {
     const { contact, share, rating } = req.body;
 
-    // Validate the data against the schema
-    const validationResult = contactSchema.validate({ contact, share, rating }, { abortEarly: false });
-
-    // Check for validation errors
-    if (validationResult.error) {
-        const errors = validationResult.error.details.map((err) => err.message);
-        return res.status(400).send({ errors: errors });
-    }
-
-    const insertSql = 'INSERT INTO contact (contact, share, rating) VALUES (?, ?, ?)';
-    db.query(insertSql, [contact, JSON.stringify(share), JSON.stringify(rating)], (err, result) => {
-        if (err) {
-            console.error('Error creating contact:', err);
+    // Check if there is already a contact in the table
+    const checkExistingSql = 'SELECT COUNT(*) AS count FROM contact';
+    db.query(checkExistingSql, (checkErr, checkResult) => {
+        if (checkErr) {
+            console.error('Error checking existing contact:', checkErr);
             return res.status(500).send({ error: 'Internal Server Error' });
         }
-        res.status(200).send({ message: 'Contact created successfully', contactId: result.insertId });
+
+        const existingCount = checkResult[0].count;
+
+        if (existingCount > 0) {
+            return res.status(400).send({ error: 'Only one contact is allowed. Update the existing contact instead.' });
+        }
+
+        // Validate the data against the schema
+        const validationResult = contactSchema.validate({ contact, share, rating }, { abortEarly: false });
+
+        // Check for validation errors
+        if (validationResult.error) {
+            const errors = validationResult.error.details.map((err) => err.message);
+            return res.status(400).send({ errors: errors });
+        }
+
+        // Insert the new contact
+        const insertSql = 'INSERT INTO contact (contact, share, rating) VALUES (?, ?, ?)';
+        db.query(insertSql, [contact, JSON.stringify(share), JSON.stringify(rating)], (err, result) => {
+            if (err) {
+                console.error('Error creating contact:', err);
+                return res.status(500).send({ error: 'Internal Server Error' });
+            }
+            res.status(200).send({ message: 'Contact created successfully', contactId: result.insertId });
+        });
     });
 });
 
