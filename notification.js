@@ -427,7 +427,9 @@ router.post('/send-push-notification-users-test', upload.single('image'), async 
                 .then((response) => {
                   res.status(200).json({
                     message: "Successfully sent message",
-                    response
+                    response : {
+                      redirectURL : link
+                    }
                   });
                   console.log("Successfully sent message:", response);
                 })
