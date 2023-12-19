@@ -37,13 +37,13 @@ router.post('/settings/add-contact', (req, res) => {
 
 // Get all contacts
 router.get('/settings/get-contact', (req, res) => {
-    const selectSql = 'SELECT * FROM contact'; 
+    const selectSql = 'SELECT * FROM contact';  // Use 'contactus' as the table name
     db.query(selectSql, (err, results) => {
         if (err) {
             console.error('Error fetching contacts:', err);
             return res.status(500).send({ error: 'Internal Server Error' });
         }
-        res.status(200).send({ data: results });
+        res.status(200).send({ data: results[0] });
     });
 });
 
