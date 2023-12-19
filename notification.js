@@ -103,7 +103,7 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
           // Check if the response status is 200
           if (externalApiResponse.data) {
             // If successful, trigger the second external API call
-            const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16351/hYNQ78ihflsQqOQA5RhYBN`;
+            const secondExternalApiUrl = `https://app.nativenotify.com/api/notification/inbox/16785/M4BkpOjRzzcSpbRoGzxT8i`;
             const secondExternalApiResponse = await axios.get(secondExternalApiUrl);
 
             // Assuming the response is an array and you want to get the first element
