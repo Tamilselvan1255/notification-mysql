@@ -34,7 +34,7 @@ router.post('/settings/add-contact', (req, res) => {
         const existingCount = checkResult[0].count;
 
         if (existingCount > 0) {
-            return res.status(400).send({ error: 'Only one contact is allowed. Update the existing contact instead.' });
+            return res.status(400).send({ error: 'Only one data allowed. Try to update the exisiting one!!' });
         }
 
         // Validate the data against the schema
