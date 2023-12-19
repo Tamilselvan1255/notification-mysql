@@ -36,6 +36,13 @@ function isValidUrl(url) {
   return urlRegex.test(url);
 }
 
+
+// Define a utility function to format the date
+function formatDate(date) {
+  const options = { timeZone: 'Asia/Kolkata' };
+  return date.toLocaleString('en-US', options);
+}
+
 router.post('/send-push-notification', upload.single('image'), async (req, res) => {
   try {
     const { title, message, link } = req.body;
@@ -71,16 +78,18 @@ router.post('/send-push-notification', upload.single('image'), async (req, res) 
       console.log('Image uploaded to S3:', imageUrl);
 
       // Insert notification into local database
-      const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
+      const insertSql = 'INSERT INTO notifications (title, message, image, link, createdAt) VALUES (?, ?, ?, ?, NOW())';
+
+      const currentDate = new Date();
+      const formattedDate = formatDate(currentDate);
+
+
       db.query(insertSql, [title, message, imageUrl, link], async (err, result) => {
         if (err) {
           console.error('Error in send-push-notification endpoint:', err);
           return res.status(500).send({ error: err.message });
         }
 
-        const currentDate = new Date();
-        const options = { timeZone: 'Asia/Kolkata' };
-        const formattedDate = currentDate.toLocaleString('en-US', options);
 
         // Notification inserted successfully, now call the external API
         try {
@@ -171,7 +180,7 @@ router.get('/get-push-notification', async (req, res) => {
         link: internalNotification.link,
         refer_notification_id: internalNotification.refer_notification_id,
         pushData: matchingExternalNotification ? JSON.parse(matchingExternalNotification.pushData) : null,
-        date: matchingExternalNotification ? matchingExternalNotification.date : null,
+        date: matchingExternalNotification ? matchingExternalNotification.date : formatDate(new Date()), // Use the formatted date here
         emoji: internalNotification.emoji,
       };
     });
@@ -421,14 +430,14 @@ router.post('/send-push-notification-users-test', upload.single('image'), async 
                 },
                 topic: "all"
               };
-            
+
               getMessaging()
                 .send(message1)
                 .then((response) => {
                   res.status(200).json({
                     message: "Successfully sent message",
-                    response : {
-                      redirectURL : link
+                    response: {
+                      redirectURL: link
                     }
                   });
                   console.log("Successfully sent message:", response);
