@@ -8,36 +8,60 @@ const contactSchema = Joi.object({
     contact: Joi.alternatives(
         Joi.string().pattern(/^[0-9]{10}$/),
         Joi.string().email().regex(/^[^\s@]+@gmail\.com$/)
-    ).required(),
+    ),
+    share: Joi.object({
+        android: Joi.string().uri(),
+        ios: Joi.string().uri()
+    }),
+    rating: Joi.object({
+        android: Joi.string().uri(),
+        ios: Joi.string().uri()
+    })
 });
 
 // Create a contact
 router.post('/settings/add-contact', (req, res) => {
-    const { contact, share } = req.body;
+    const { contact, share, rating } = req.body;
 
-    // Validate the data against the schema
-    const validationResult = contactSchema.validate({ contact }, { abortEarly: false });
-
-    // Check for validation errors
-    if (validationResult.error) {
-        const errors = validationResult.error.details.map((err) => err.message);
-        return res.status(400).send({ errors: errors });
-    }
-
-    const insertSql = 'INSERT INTO contact (contact, share) VALUES (?, ?)';
-    db.query(insertSql, [contact, share], (err, result) => {
-        if (err) {
-            console.error('Error creating contact:', err);
+    // Check if there is already a contact in the table
+    const checkExistingSql = 'SELECT COUNT(*) AS count FROM contact';
+    db.query(checkExistingSql, (checkErr, checkResult) => {
+        if (checkErr) {
+            console.error('Error checking existing contact:', checkErr);
             return res.status(500).send({ error: 'Internal Server Error' });
         }
-        res.status(201).send({ message: 'Contact created successfully', contactId: result.insertId });
+
+        const existingCount = checkResult[0].count;
+
+        if (existingCount > 0) {
+            return res.status(400).send({ error: 'Only one data allowed. Try to update the exisiting one!!' });
+        }
+
+        // Validate the data against the schema
+        const validationResult = contactSchema.validate({ contact, share, rating }, { abortEarly: false });
+
+        // Check for validation errors
+        if (validationResult.error) {
+            const errors = validationResult.error.details.map((err) => err.message);
+            return res.status(400).send({ errors: errors });
+        }
+
+        // Insert the new contact
+        const insertSql = 'INSERT INTO contact (contact, share, rating) VALUES (?, ?, ?)';
+        db.query(insertSql, [contact, JSON.stringify(share), JSON.stringify(rating)], (err, result) => {
+            if (err) {
+                console.error('Error creating contact:', err);
+                return res.status(500).send({ error: 'Internal Server Error' });
+            }
+            res.status(200).send({ message: 'Contact created successfully', contactId: result.insertId });
+        });
     });
 });
 
 
 // Get all contacts
 router.get('/settings/get-contact', (req, res) => {
-    const selectSql = 'SELECT * FROM contact'; 
+    const selectSql = 'SELECT * FROM contact';  // Use 'contactus' as the table name
     db.query(selectSql, (err, results) => {
         if (err) {
             console.error('Error fetching contacts:', err);
@@ -50,7 +74,7 @@ router.get('/settings/get-contact', (req, res) => {
 // Update a contact
 router.patch('/settings/update-contact/:id', (req, res) => {
     const { id } = req.params;
-    const { contact, share } = req.body;
+    const { contact, share, rating } = req.body;
 
     // Validate the data against the schema
     const validationResult = contactSchema.validate({ contact }, { abortEarly: false });
@@ -75,8 +99,8 @@ router.patch('/settings/update-contact/:id', (req, res) => {
         }
 
         // Update the contact if it exists
-        const updateSql = 'UPDATE contact SET contact=?, share=? WHERE id=?';
-        db.query(updateSql, [contact, share, id], (updateErr, result) => {
+        const updateSql = 'UPDATE contact SET contact=?, share=?, rating=? WHERE id=?';
+        db.query(updateSql, [contact, JSON.stringify(share), JSON.stringify(rating), id], (updateErr, result) => {
             if (updateErr) {
                 console.error('Error updating contact:', updateErr);
                 return res.status(500).send({ error: 'Internal Server Error' });
@@ -85,6 +109,7 @@ router.patch('/settings/update-contact/:id', (req, res) => {
         });
     });
 });
+
 
 
 // Delete a contact
