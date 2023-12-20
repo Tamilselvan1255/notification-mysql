@@ -462,6 +462,112 @@ router.post('/send-push-notification-users-test', upload.single('image'), async 
 });
 
 
+router.post('/send-push-notification-users-testing', async (req, res) => {
+  try {
+    const { title, message, link, image } = req.body;
+
+    if (!title || !message || !link || !image) {
+      return res.status(400).send({ error: 'Please enter all entities' });
+    }
+
+    if (!isValidUrl(link)) {
+      return res.status(400).send({ error: 'Invalid URL link' });
+    }
+
+    // if (!req.file) {
+    //   return res.status(400).send({ error: 'No file uploaded' });
+    // }
+
+    // const file = req.file;
+    // const fileName = file.originalname;
+    // const filePath = file.path;
+
+    // const s3Params = {
+    //   Bucket: process.env.AWS_BUCKET_NAME,
+    //   Key: 'uploads/' + fileName,
+    //   Body: require('fs').createReadStream(filePath),
+    //   ACL: 'public-read',
+    //   ContentType: file.mimetype,
+    // };
+
+    try {
+      // const s3Response = await s3.upload(s3Params).promise();
+      // const imageUrl = s3Response.Location;
+
+      console.log('Image uploaded to S3:', image);
+
+      // Insert notification into local database
+      const insertSql = 'INSERT INTO notifications (title, message, image, link) VALUES (?, ?, ?, ?)';
+      db.query(insertSql, [title, message, image, link], async (err, result) => {
+        if (err) {
+          console.error('Error in send-push-notification endpoint:', err);
+          return res.status(500).send({ error: err.message });
+        }
+
+        // Retrieve Expo push tokens from the user table
+
+        const userTokensSql = 'SELECT DISTINCT token FROM users';
+
+        db.query(userTokensSql, async (tokenErr, tokenResults) => {
+          if (tokenErr) {
+            console.error('Error retrieving user tokens:', tokenErr);
+            return res.status(500).send({ error: tokenErr.message });
+          }
+
+          const expoTokens = tokenResults.map((row) => row.token);
+
+          getMessaging().subscribeToTopic(expoTokens, "all")
+            .then((response) => {
+              const message1 = {
+                android: {
+                  notification: {
+                    imageUrl:
+                      image,
+                  },
+                },
+                notification: {
+                  title: title,
+                  body: message,
+                },
+                data: {
+                  title: "Message Title",
+                  body: "Message Body",
+                  link_url: "https://www.google.com/", // When a user clicks on the notification, go here
+                },
+                topic: "all"
+              };
+            
+              getMessaging()
+                .send(message1)
+                .then((response) => {
+                  res.status(200).json({
+                    message: "Successfully sent message",
+                  });
+                  console.log("Successfully sent message:", response);
+                })
+                .catch((error) => {
+                  res.status(400);
+                  res.send(error);
+                  console.log("Error sending message:", error);
+                });
+            })
+            .catch((error) => {
+              console.log('Error subscribing to topic:', error);
+            });
+        });
+      });
+    } catch (s3Error) {
+      console.error('Error uploading image to S3:', s3Error);
+      res.status(500).send({ error: 'Error uploading image to S3' });
+    }
+  } catch (error) {
+    console.error('Error in send-push-notification endpoint:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
+  }
+});
+
+
+
 
 
 // Helper function to execute SQL queries with promises
