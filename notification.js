@@ -422,7 +422,7 @@ router.post('/send-push-notification-users-test', upload.single('image'), async 
                 data: {
                   title: "Message Title",
                   body: "Message Body",
-                  link_url: "https://www.google.com/", // When a user clicks on the notification, go here
+                  url: "https://www.google.com/", // When a user clicks on the notification, go here
                 },
                 topic: "all"
               };
