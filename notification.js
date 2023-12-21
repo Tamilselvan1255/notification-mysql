@@ -16,7 +16,7 @@ const serviceAccount = require("./serviceAccountKey.json");
 
 initializeApp({
   credential: admin.credential.cert(serviceAccount), // Use 'admin' here
-  projectId: "push-notification-3f697",
+  projectId: "webview-a52ed",
 });
 
 const s3 = new AWS.S3({
@@ -422,7 +422,7 @@ router.post('/send-push-notification-users-test', upload.single('image'), async 
                 data: {
                   title: "Message Title",
                   body: "Message Body",
-                  url: "https://www.google.com/", // When a user clicks on the notification, go here
+                  url: link, // When a user clicks on the notification, go here
                 },
                 topic: "all"
               };
